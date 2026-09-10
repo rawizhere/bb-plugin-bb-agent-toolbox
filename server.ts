@@ -1,19 +1,5 @@
-// bb-plugin-bb-agent-toolbox
-//
-// Exposes bb SDK surfaces to agents as provider-independent agent tools via
-// bb.agents.registerTool + bb.agents.contributeInstructions. These tools are
-// injected into ANY provider's sessions (including the prime-agent ACP
-// provider), so an agent can act inside bb: threads, interactions, projects,
-// workspace files, and terminals.
-//
-// The transport between bb and a provider is untouched — this plugin only
-// adds bb surfaces as tools. Disable or remove it and agents return to stock
-// behaviour.
-//
-// Note: shared memory is intentionally NOT included here — the built-in
-// Memory plugin already provides durable bb_memory_* agent tools (and a CLI +
-// UI). This toolbox stays focused on what is otherwise missing: threads,
-// workspace, and terminals.
+// Exposes bb SDK surfaces (threads, workspace, terminals) to any provider's agent sessions as agent tools.
+// Shared memory is not here on purpose; the built-in Memory plugin already covers it.
 import { type BbPluginApi } from "@get-bb/plugin-sdk";
 import { type Flags, makeRegistrar, type ToolGroup } from "./src/lib/toolkit";
 import { registerThreadTools } from "./src/tools/threads";
@@ -36,10 +22,7 @@ const GROUP_FLAGS: Record<ToolGroup, keyof Flags> = {
 export default async function plugin(bb: BbPluginApi) {
   bb.log.info("loaded");
 
-  // ---- Settings ----------------------------------------------------------
-  // Group toggles control what agents can touch. Responding to other threads'
-  // interactions is a separate, default-off setting: it lets an agent approve
-  // or deny another agent's permission requests.
+  // Group toggles control what agents can touch; enableInteractionRespond (default off) gates approvals.
   const settings = bb.settings.define({
     enableThreads: {
       type: "boolean",
@@ -71,20 +54,13 @@ export default async function plugin(bb: BbPluginApi) {
   void settings.get().then((values) => Object.assign(flags, values));
   settings.onChange((next) => Object.assign(flags, next));
 
-  // ---- Agent tools -------------------------------------------------------
-  // Each tool: name/description, a zod parameter schema, and an execute that
-  // runs server-side with bb.sdk bound and the calling thread's projectId /
-  // threadId in ctx. The registrar gates on the live group flag, catches
-  // errors, and truncates output.
+  // Register tools; the registrar gates on the live flag, catches errors, and truncates output.
   const { register, registry } = makeRegistrar(bb, flags, GROUP_FLAGS);
   registerThreadTools(bb, flags, register);
   registerWorkspaceTools(bb, register);
   registerTerminalTools(bb, register);
 
-  // ---- Agent instructions ------------------------------------------------
-  // Appended to thread instructions whenever any of this plugin's tools are in
-  // the session's tool set, so the agent knows when to reach for them. Reads
-  // the live flags, so it follows settings changes for new sessions.
+  // Instructions appended to thread sessions; reads live flags, so it follows settings changes.
   bb.agents.contributeInstructions(() => {
     const lines: string[] = ["You have bb integration tools available:"];
     for (const group of ["threads", "workspace", "terminals"] as ToolGroup[]) {
@@ -106,7 +82,7 @@ export default async function plugin(bb: BbPluginApi) {
     return lines.join("\n");
   });
 
-  // ---- CLI ---------------------------------------------------------------
+  // CLI to inspect the tool groups and their enabled state.
   bb.cli.register({
     name: "bb-agent-toolbox",
     summary: "Inspect the BB Agent Toolbox plugin's tool groups",
@@ -134,9 +110,5 @@ export default async function plugin(bb: BbPluginApi) {
         stderr: "",
       };
     },
-  });
-
-  bb.onDispose(() => {
-    bb.log.info("disposed");
   });
 }

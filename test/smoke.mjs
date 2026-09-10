@@ -90,7 +90,7 @@ const sentLater = await tools.get("bbtools_thread_send").execute({ threadId: "th
 const sentBad = await tools.get("bbtools_thread_send").execute({ threadId: "thr_child", text: "hi", sendAt: "not-a-date" }, ctx);
 results["bbtools_thread_send"] = [sentNow, sentLater, sentBad].join(" || ");
 await run("bbtools_thread_spawn", { prompt: "do it" });
-await run("bbtools_thread_wait", { threadId: "thr_child", timeoutMs: 5000, pollIntervalMs: 500 });
+await run("bbtools_thread_wait", { threadId: "thr_child", timeoutMs: 5000 });
 await run("bbtools_thread_interactions_list", { threadId: "thr_child" });
 await run("bbtools_thread_interaction_respond", { threadId: "thr_child", interactionId: "ia_1", decision: "deny" });
 await run("bbtools_thread_interaction_respond", { threadId: "thr_child", interactionId: "ia_2", answers: { q1: { selected: ["yes"] } } });

@@ -1,6 +1,6 @@
 {
   "name": "bb-plugin-bb-agent-toolbox",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -9,7 +9,7 @@
   },
   "bb": {
     "name": "BB Agent Toolbox",
-    "description": "Give any coding agent \u2014 opencode, Prime Agent, Google Antigravity, Codex, Claude Code, and more \u2014 hands-on access to bb: read and edit workspace files, inspect and message other threads, wait for their results, answer their pending questions and approvals, delegate work by spawning threads, and see running terminals. All as tools the agent can call directly, whatever provider or model (incl. OpenRouter) it runs on.",
+    "description": "Give any coding agent — opencode, Prime Agent, Google Antigravity, Codex, Claude Code, and more — hands-on access to bb: read and edit workspace files, inspect and message other threads, wait for their results, answer their pending questions and approvals, delegate work by spawning threads, and see running terminals. All as tools the agent can call directly, whatever provider or model (incl. OpenRouter) it runs on.",
     "branding": {
       "icon": "./icons/bb-agent-toolbox.svg"
     },
@@ -20,7 +20,6 @@
   },
   "devDependencies": {
     "@get-bb/plugin-sdk": "0.4.47",
-    "@hono/node-server": "^2.1.1",
     "@types/node": "^22.0.0",
     "better-sqlite3": "^13.0.3",
     "cron-parser": "^5.10.0",

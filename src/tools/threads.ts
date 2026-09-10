@@ -1,11 +1,10 @@
 import { type BbPluginApi } from "@get-bb/plugin-sdk";
 import { z } from "zod";
 import { type BbContext, type JsonValue } from "@get-bb/plugin-sdk";
-import { type Flags, makeRegistrar, requireProjectId, requireThreadId, sleep, threadTitle, tool } from "../lib/toolkit";
+import { type Flags, requireProjectId, requireThreadId, sleep, threadTitle, type Registrar } from "../lib/toolkit";
 import { resolveHost } from "../lib/resolve-host";
 
-// Loose shape of the interactions the SDK returns; formatting stays defensive
-// because the union differs across providers.
+// Loose shape of the interactions the SDK returns; the union differs across providers.
 type InteractionRow = {
   id: string;
   status: string;
@@ -44,7 +43,7 @@ function describeInteraction(item: InteractionRow): string {
 }
 
 // Accept an ISO date string or epoch milliseconds; return epoch ms or null.
-export function parseWhen(input: string): number | null {
+function parseWhen(input: string): number | null {
   if (/^\d{10,14}$/.test(input)) return Number(input);
   const t = Date.parse(input);
   return Number.isNaN(t) ? null : t;
@@ -53,9 +52,9 @@ export function parseWhen(input: string): number | null {
 export function registerThreadTools(
   bb: BbPluginApi,
   flags: Flags,
-  register: ReturnType<typeof makeRegistrar>["register"],
+  register: Registrar,
 ) {
-  register("threads", tool({
+  register("threads", {
     name: "bbtools_threads_list",
     description:
       "List bb threads in the current project: id, title, status, provider, and activity. Use it to discover threads you can read or message.",
@@ -72,9 +71,9 @@ export function registerThreadTools(
         .map((t) => `${t.id}\t[${t.status}] ${threadTitle(t)} (provider: ${t.providerId})`)
         .join("\n");
     },
-  }));
+  });
 
-  register("threads", tool({
+  register("threads", {
     name: "bbtools_thread_get",
     description:
       "Read a bb thread's status, its latest assistant output, and any pending interaction. Use it to check what another thread (agent) is doing, produced, or waits for.",
@@ -105,9 +104,9 @@ export function registerThreadTools(
       }
       return `id: ${thread.id}\nstatus: ${thread.status}\ntitle: ${threadTitle(thread)}\nprovider: ${thread.providerId}${env}${output}${pending}`;
     },
-  }));
+  });
 
-  register("threads", tool({
+  register("threads", {
     name: "bbtools_thread_outline",
     description:
       "Read a compact conversation outline of a bb thread: turn-by-turn role and preview. Use it to see what another thread (e.g. a child you spawned) discussed or concluded without pulling the full transcript.",
@@ -128,9 +127,9 @@ export function registerThreadTools(
         })
         .join("\n");
     },
-  }));
+  });
 
-  register("threads", tool({
+  register("threads", {
     name: "bbtools_thread_send",
     description:
       "Send a text message to an existing bb thread. Use it to message another agent/thread directly to coordinate work, request an update, or hand off a result. A future sendAt queues the message instead of dispatching it now.",
@@ -159,9 +158,9 @@ export function registerThreadTools(
       }
       return `Sent message to thread ${threadId}.`;
     },
-  }));
+  });
 
-  register("threads", tool({
+  register("threads", {
     name: "bbtools_thread_spawn",
     description:
       "Create a new bb thread (child of the current one). Use it to delegate parallel or background work to another agent thread. Defaults to the current thread's provider and environment; pass providerId/model to override.",
@@ -184,6 +183,7 @@ export function registerThreadTools(
       const current = await bb.sdk.threads.get({ threadId });
       const resolvedProvider = providerId ?? current.providerId;
       if (!resolvedProvider) return "Error: no provider on the current thread; pass providerId.";
+      // Reuse the current thread's environment when it has one, else fall back to the project default.
       const environment = await (async () => {
         try {
           const { environmentId } = await resolveHost(bb, threadId);
@@ -207,9 +207,9 @@ export function registerThreadTools(
       });
       return `Spawned thread ${thread.id} in project ${ctx.projectId}. Use bbtools_thread_wait to wait for it to finish.`;
     },
-  }));
+  });
 
-  register("threads", tool({
+  register("threads", {
     name: "bbtools_thread_wait",
     description:
       "Wait until a bb thread reaches a target status (by default idle or error). Use it after spawning or messaging a thread instead of polling bbtools_thread_get repeatedly.",
@@ -226,18 +226,10 @@ export function registerThreadTools(
         .max(900_000)
         .optional()
         .describe("Give up after this long (default 120000, max 900000)."),
-      pollIntervalMs: z
-        .number()
-        .int()
-        .min(500)
-        .max(30_000)
-        .optional()
-        .describe("Status poll interval (default 2000)."),
     }),
-    execute: async ({ threadId, waitFor, timeoutMs, pollIntervalMs }) => {
+    execute: async ({ threadId, waitFor, timeoutMs }) => {
       const targets = waitFor === "idle" ? ["idle"] : waitFor === "error" ? ["error"] : ["idle", "error"];
       const limit = timeoutMs ?? 120_000;
-      const interval = pollIntervalMs ?? 2_000;
       const start = Date.now();
       for (;;) {
         const thread = await bb.sdk.threads.get({ threadId });
@@ -247,12 +239,12 @@ export function registerThreadTools(
         }
         if (Date.now() - start >= limit)
           return `Timed out after ${Math.round(limit / 1000)}s; thread ${threadId} is still ${thread.status}.`;
-        await sleep(Math.min(interval, start + limit - Date.now()));
+        await sleep(Math.min(2_000, start + limit - Date.now()));
       }
     },
-  }));
+  });
 
-  register("threads", tool({
+  register("threads", {
     name: "bbtools_thread_interactions_list",
     description:
       "List a bb thread's pending interactions: permission approvals, user questions, and plugin prompts. Use it to see what another thread waits for before answering with bbtools_thread_interaction_respond.",
@@ -266,9 +258,9 @@ export function registerThreadTools(
       if (open.length === 0) return "No pending interactions on this thread.";
       return open.map(describeInteraction).join("\n\n");
     },
-  }));
+  });
 
-  register("threads", tool({
+  register("threads", {
     name: "bbtools_thread_interaction_respond",
     description:
       "Respond to a pending interaction on another bb thread: approve or deny a permission approval, answer a user question, or submit a value. Listing first with bbtools_thread_interactions_list is expected. This tool is disabled unless the plugin setting enableInteractionRespond is on.",
@@ -310,9 +302,9 @@ export function registerThreadTools(
       await bb.sdk.threads.interactions.respond({ threadId, interactionId, value: response as JsonValue });
       return `Responded to interaction ${interactionId} on thread ${threadId}.`;
     },
-  }));
+  });
 
-  register("threads", tool({
+  register("threads", {
     name: "bbtools_thread_retry",
     description:
       "Re-submit the failed turn of a bb thread that is in error status. Use it to restart work after fixing the cause of a failure.",
@@ -333,9 +325,9 @@ export function registerThreadTools(
       if (res.delivery === "queued") return `Retry of thread ${threadId} queued (turn ${res.turnRequestId}).`;
       return `Retry of thread ${threadId} dispatched (turn ${res.turnRequestId}).`;
     },
-  }));
+  });
 
-  register("threads", tool({
+  register("threads", {
     name: "bbtools_thread_stop",
     description:
       "Stop a running bb thread (cancels its active turn). Use it to stop work you delegated to another thread, e.g. a runaway or no-longer-needed child thread.",
@@ -346,9 +338,9 @@ export function registerThreadTools(
       await bb.sdk.threads.stop({ threadId });
       return `Stopped thread ${threadId}.`;
     },
-  }));
+  });
 
-  register("threads", tool({
+  register("threads", {
     name: "bbtools_thread_archive",
     description:
       "Archive a bb thread (hides it from the active list; reversible via unarchive). Use it to clean up finished child threads you spawned.",
@@ -359,9 +351,9 @@ export function registerThreadTools(
       await bb.sdk.threads.archive({ threadId });
       return `Archived thread ${threadId}.`;
     },
-  }));
+  });
 
-  register("threads", tool({
+  register("threads", {
     name: "bbtools_thread_clear_context",
     description:
       "Reset a bb thread's agent context while keeping its workspace and history. Use it on an idle thread that drifted off course before sending a fresh, focused prompt.",
@@ -372,9 +364,9 @@ export function registerThreadTools(
       await bb.sdk.threads.clearContext({ threadId });
       return `Cleared context of thread ${threadId}.`;
     },
-  }));
+  });
 
-  register("threads", tool({
+  register("threads", {
     name: "bbtools_thread_compact",
     description:
       "Compact a bb thread's conversation to shrink its context window. Use it on a long-running thread that is still useful but heavy.",
@@ -385,9 +377,9 @@ export function registerThreadTools(
       await bb.sdk.threads.compact({ threadId });
       return `Compacted thread ${threadId}.`;
     },
-  }));
+  });
 
-  register("threads", tool({
+  register("threads", {
     name: "bbtools_thread_search",
     description:
       "Search across bb threads and messages for text. Use it to find past discussions instead of reading whole threads.",
@@ -411,5 +403,5 @@ export function registerThreadTools(
       }
       return out.length === 0 ? "No matches." : out.join("\n");
     },
-  }));
+  });
 }

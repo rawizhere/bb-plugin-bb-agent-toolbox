@@ -1,13 +1,10 @@
 import { type BbPluginApi } from "@get-bb/plugin-sdk";
 import { z } from "zod";
-import { tool } from "../lib/toolkit";
-import { requireThreadId } from "../lib/toolkit";
+import { requireThreadId, type Registrar } from "../lib/toolkit";
 import { absolutePath, resolveHost } from "../lib/resolve-host";
 
-import { type Registrar } from "../lib/toolkit";
-
 export function registerWorkspaceTools(bb: BbPluginApi, register: Registrar) {
-  register("workspace", tool({
+  register("workspace", {
     name: "bbtools_projects_list",
     description:
       "List bb projects with their ids and names. Use it to orient yourself across workspaces.",
@@ -22,9 +19,9 @@ export function registerWorkspaceTools(bb: BbPluginApi, register: Registrar) {
         )
         .join("\n");
     },
-  }));
+  });
 
-  register("workspace", tool({
+  register("workspace", {
     name: "bbtools_workspace_list",
     description:
       "List files and directories under a path in the current project's workspace. Use it to see what exists before reading files.",
@@ -48,9 +45,9 @@ export function registerWorkspaceTools(bb: BbPluginApi, register: Registrar) {
         .map((p) => `${p.kind === "directory" ? "[d]" : "   "} ${p.name}  ${p.path}`)
         .join("\n");
     },
-  }));
+  });
 
-  register("workspace", tool({
+  register("workspace", {
     name: "bbtools_workspace_read",
     description:
       "Read a file's content from the current project's workspace. Use it to load files into context even if your own workspace access is limited.",
@@ -70,9 +67,9 @@ export function registerWorkspaceTools(bb: BbPluginApi, register: Registrar) {
           : res.content;
       return `${path} (${res.sizeBytes} bytes)\n\n${content}`;
     },
-  }));
+  });
 
-  register("workspace", tool({
+  register("workspace", {
     name: "bbtools_workspace_write",
     description:
       "Write or overwrite a file in the current project's workspace, creating parent directories as needed. Use it to create/update files from bb context.",
@@ -91,9 +88,9 @@ export function registerWorkspaceTools(bb: BbPluginApi, register: Registrar) {
       });
       return `Wrote ${path}.`;
     },
-  }));
+  });
 
-  register("workspace", tool({
+  register("workspace", {
     name: "bbtools_workspace_mkdir",
     description:
       "Create a directory in the current project's workspace (recursively). Use it to ensure a folder exists before writing files.",
@@ -110,5 +107,5 @@ export function registerWorkspaceTools(bb: BbPluginApi, register: Registrar) {
       });
       return `Ensured directory ${path}.`;
     },
-  }));
+  });
 }

@@ -1,9 +1,9 @@
 import { type BbPluginApi } from "@get-bb/plugin-sdk";
 import { z } from "zod";
-import { requireThreadId, tool, type Registrar } from "../lib/toolkit";
+import { requireThreadId, type Registrar } from "../lib/toolkit";
 
 export function registerTerminalTools(bb: BbPluginApi, register: Registrar) {
-  register("terminals", tool({
+  register("terminals", {
     name: "bbtools_terminals_list",
     description:
       "List bb terminal sessions in the current thread: id, title, status, cwd. Use it to see running shells and their scope.",
@@ -20,9 +20,9 @@ export function registerTerminalTools(bb: BbPluginApi, register: Registrar) {
         )
         .join("\n");
     },
-  }));
+  });
 
-  register("terminals", tool({
+  register("terminals", {
     name: "bbtools_terminal_create",
     description:
       "Create a bb terminal session attached to the current thread. Use it to run a shell the user can watch live in the bb UI, or start a long-running command in a visible terminal.",
@@ -40,9 +40,9 @@ export function registerTerminalTools(bb: BbPluginApi, register: Registrar) {
       });
       return `Created terminal ${session.id}${title ? ` ("${title}")` : ""}. Use bbtools_terminal_output / bbtools_terminal_input with this id.`;
     },
-  }));
+  });
 
-  register("terminals", tool({
+  register("terminals", {
     name: "bbtools_terminal_output",
     description:
       "Read recent output of a bb terminal session (decoded text tail). Use it after bbtools_terminal_input or bbtools_terminal_create to see what the shell printed.",
@@ -63,9 +63,9 @@ export function registerTerminalTools(bb: BbPluginApi, register: Registrar) {
         ? "(no output yet)"
         : `${res.truncated ? "(truncated)\n" : ""}${cleaned.trim()}`;
     },
-  }));
+  });
 
-  register("terminals", tool({
+  register("terminals", {
     name: "bbtools_terminal_input",
     description:
       "Type text into a bb terminal session (as if the user typed it). Use it to run commands or answer prompts in a terminal the user can watch.",
@@ -82,9 +82,9 @@ export function registerTerminalTools(bb: BbPluginApi, register: Registrar) {
       });
       return `Typed into terminal ${terminalId}. Use bbtools_terminal_output to read the result.`;
     },
-  }));
+  });
 
-  register("terminals", tool({
+  register("terminals", {
     name: "bbtools_terminal_close",
     description:
       "Close a bb terminal session. Use it to clean up terminals you created.",
@@ -99,5 +99,5 @@ export function registerTerminalTools(bb: BbPluginApi, register: Registrar) {
       });
       return `Closed terminal ${terminalId}.`;
     },
-  }));
+  });
 }

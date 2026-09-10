@@ -1,13 +1,13 @@
 import { type BbContext, type BbPluginApi } from "@get-bb/plugin-sdk";
 import { z, type ZodObject, type ZodRawShape } from "zod";
 
+// Tool groups; each maps to a plugin-settings flag checked live at call time.
 export type ToolGroup = "threads" | "workspace" | "terminals";
-
 export type Flags = Record<string, boolean>;
 
 const OUTPUT_LIMIT = 16_000;
 
-// Agent-tool output goes into the model context, so cap it and say by how much.
+// Tool output goes into the model context, so cap it and say by how much.
 export function truncateOutput(text: string, limit = OUTPUT_LIMIT): string {
   if (text.length <= limit) return text;
   return `${text.slice(0, limit)}\n... [truncated ${text.length - limit} chars]`;
@@ -20,33 +20,17 @@ export type Tool<S extends ZodRawShape> = {
   execute: (params: z.output<ZodObject<S>>, ctx: BbContext) => Promise<string>;
 };
 
-export function tool<S extends ZodRawShape>(def: Tool<S>) {
-  return def;
-}
+// Generic on the registrar itself, so tools register as plain object literals.
+export type Registrar = <S extends ZodRawShape>(group: ToolGroup, def: Tool<S>) => void;
 
-export type RegisteredTool = {
-  name: string;
-  group: ToolGroup;
-  description: string;
-};
-
-export type ToolBody = {
-  name: string;
-  description: string;
-  parameters: z.ZodType<unknown>;
-  execute: (params: any, ctx: BbContext) => Promise<string>;
-};
-
-export type Registrar = (group: ToolGroup, def: ToolBody) => void;
-
+export type RegisteredTool = { name: string; group: ToolGroup };
 export type GroupFlags = Record<ToolGroup, keyof Flags>;
 
-// Tools are registered once and gate on the live flag at execute time, so
-// settings toggles apply without reloading the plugin.
+// Register once, gate on the live flag at execute time; toggles apply without a reload.
 export function makeRegistrar(bb: BbPluginApi, flags: Flags, groupFlags: GroupFlags): { register: Registrar; registry: RegisteredTool[] } {
   const registry: RegisteredTool[] = [];
   const register: Registrar = (group, def) => {
-    registry.push({ name: def.name, group, description: def.description });
+    registry.push({ name: def.name, group });
     bb.agents.registerTool({
       name: def.name,
       description: def.description,
