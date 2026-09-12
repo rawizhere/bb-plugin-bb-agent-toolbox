@@ -14,9 +14,10 @@ sessions the user can see live in the bb UI.
 ## How it works
 
 Pure server-side: the plugin only wraps bb SDK areas (`threads` incl.
-`interactions`, `files`, `terminals`, `projects`) as agent tools plus thread
-instructions. It never touches provider transports. Tool groups can be toggled
-live in the plugin settings — no reload needed. Responding to other threads'
+`interactions`, `files`, `terminals`, `projects`, `hosts`/`environments`,
+`experimental_desktopBrowsers`) as agent tools plus thread instructions. It
+never touches provider transports. Tool groups can be toggled live in the
+plugin settings — no reload needed. Responding to other threads'
 interactions is a separate default-off setting.
 
 ## Links

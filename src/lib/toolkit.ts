@@ -2,7 +2,7 @@ import { type BbContext, type BbPluginApi } from "@get-bb/plugin-sdk";
 import { z, type ZodObject, type ZodRawShape } from "zod";
 
 // Tool groups; each maps to a plugin-settings flag checked live at call time.
-export type ToolGroup = "threads" | "workspace" | "terminals";
+export type ToolGroup = "threads" | "workspace" | "terminals" | "machines" | "browser";
 export type Flags = Record<string, boolean>;
 
 const OUTPUT_LIMIT = 16_000;

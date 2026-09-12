@@ -1,11 +1,11 @@
 {
   "name": "bb-plugin-bb-agent-toolbox",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "license": "MIT",
   "engines": {
-    "bb": ">=0.42",
-    "bbPluginSdk": ">=0.4.47"
+    "bb": ">=0.43",
+    "bbPluginSdk": ">=0.4.84"
   },
   "bb": {
     "name": "BB Agent Toolbox",
@@ -19,7 +19,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@get-bb/plugin-sdk": "0.4.47",
+    "@get-bb/plugin-sdk": "0.4.84",
     "@types/node": "^22.0.0",
     "better-sqlite3": "^13.0.3",
     "cron-parser": "^5.10.0",
@@ -27,6 +27,6 @@
     "typescript": "^5.7.0"
   },
   "scripts": {
-    "test": "node test/smoke.mjs"
+    "test": "bun test/smoke.mjs"
   }
 }

@@ -5,18 +5,24 @@ import { type Flags, makeRegistrar, type ToolGroup } from "./src/lib/toolkit";
 import { registerThreadTools } from "./src/tools/threads";
 import { registerWorkspaceTools } from "./src/tools/workspace";
 import { registerTerminalTools } from "./src/tools/terminals";
+import { registerInfraTools } from "./src/tools/infra";
+import { registerBrowserTools } from "./src/tools/browser";
 
 const GROUP_BLURBS: Record<ToolGroup, string> = {
   threads:
     "inspect, message, create, wait for, retry, stop, archive, and read other bb threads directly to coordinate, delegate, or hand off work",
   workspace: "orient across projects and read/write workspace files",
   terminals: "run and drive bb terminal sessions the user can watch live",
+  machines: "list enrolled machines and a project's workspaces (environments)",
+  browser: "open, list, close, and capture tabs in bb's desktop browser (tabs belong to the current thread)",
 };
 
 const GROUP_FLAGS: Record<ToolGroup, keyof Flags> = {
   threads: "enableThreads",
   workspace: "enableWorkspace",
   terminals: "enableTerminals",
+  machines: "enableMachines",
+  browser: "enableBrowser",
 };
 
 export default async function plugin(bb: BbPluginApi) {
@@ -39,6 +45,16 @@ export default async function plugin(bb: BbPluginApi) {
       label: "Expose terminal tools to agents",
       default: true,
     },
+    enableMachines: {
+      type: "boolean",
+      label: "Expose machine/environment listing tools to agents",
+      default: true,
+    },
+    enableBrowser: {
+      type: "boolean",
+      label: "Expose desktop browser tools to agents",
+      default: true,
+    },
     enableInteractionRespond: {
       type: "boolean",
       label: "Allow agents to respond to other threads' interactions (approvals and questions)",
@@ -49,6 +65,8 @@ export default async function plugin(bb: BbPluginApi) {
     enableThreads: true,
     enableWorkspace: true,
     enableTerminals: true,
+    enableMachines: true,
+    enableBrowser: true,
     enableInteractionRespond: false,
   };
   void settings.get().then((values) => Object.assign(flags, values));
@@ -59,11 +77,13 @@ export default async function plugin(bb: BbPluginApi) {
   registerThreadTools(bb, flags, register);
   registerWorkspaceTools(bb, register);
   registerTerminalTools(bb, register);
+  registerInfraTools(bb, register);
+  registerBrowserTools(bb, register);
 
   // Instructions appended to thread sessions; reads live flags, so it follows settings changes.
   bb.agents.contributeInstructions(() => {
     const lines: string[] = ["You have bb integration tools available:"];
-    for (const group of ["threads", "workspace", "terminals"] as ToolGroup[]) {
+    for (const group of ["threads", "workspace", "terminals", "machines", "browser"] as ToolGroup[]) {
       const names = registry.filter((t) => t.group === group && flags[GROUP_FLAGS[group]]).map((t) => t.name);
       if (names.length === 0) continue;
       lines.push(`- ${names.join(" / ")}: ${GROUP_BLURBS[group]}.`);
@@ -95,7 +115,7 @@ export default async function plugin(bb: BbPluginApi) {
     ],
     async run(argv) {
       const json = argv.includes("--json");
-      const groups: ToolGroup[] = ["threads", "workspace", "terminals"];
+      const groups: ToolGroup[] = ["threads", "workspace", "terminals", "machines", "browser"];
       const tools = registry.filter((t) => flags[GROUP_FLAGS[t.group]]).map((t) => t.name);
       const enabledGroups = groups.filter((g) => flags[GROUP_FLAGS[g]]);
       const summary = Object.fromEntries(enabledGroups.map((g) => [g, true]));

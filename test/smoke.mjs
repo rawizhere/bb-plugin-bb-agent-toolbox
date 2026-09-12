@@ -1,6 +1,6 @@
 
 import { createFakePluginHost } from "@get-bb/plugin-sdk/testing";
-import plugin from "../dist/server.js";
+import plugin from "../server.ts";
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -66,6 +66,19 @@ let host = createFakePluginHost({
       write: async () => ({}),
       mkdir: async () => ({}),
     },
+    hosts: {
+      list: async () => [{ id: "host_local", name: "Laptop", status: "connected", type: "persistent", lifecycle: { phase: "active" } }],
+    },
+    environments: {
+      list: async () => [{ id: "env_1", name: "personal", projectId: "proj_personal", hostId: "host_local", path: "/tmp/ws", status: "ready", branchName: "main" }],
+    },
+    experimental_desktopBrowsers: {
+      listInstances: async () => ({ instances: [{ generation: "g1", instanceId: "inst_1", label: "desktop", hostId: "host_local" }] }),
+      listTabs: async () => ({ revision: 1, tabs: [{ tabId: "tab_1", title: "Example", url: "https://example.com", control: null, presentation: "reveal", profile: { kind: "automation", id: "auto_1" }, threadId: "thr_self" }] }),
+      createTab: async (a) => ({ tab: { tabId: "tab_new", title: a.url, url: a.url, control: null, presentation: a.presentation, profile: { kind: "automation", id: "auto_1" }, threadId: "thr_self" } }),
+      closeTab: async () => ({ ok: true }),
+      captureTab: async () => ({ base64: Buffer.from("fake-jpeg").toString("base64"), width: 800, height: 600, mimeType: "image/jpeg" }),
+    },
     terminals: {
       list: async () => ({ sessions: [] }),
       create: async () => ({ id: "term_1" }),
@@ -109,6 +122,12 @@ await run("bbtools_terminal_create", { title: "t" });
 await run("bbtools_terminal_output", { terminalId: "term_1" });
 await run("bbtools_terminal_input", { terminalId: "term_1", text: "ls" });
 await run("bbtools_terminal_close", { terminalId: "term_1" });
+await run("bbtools_machines_list", {});
+await run("bbtools_environments_list", {});
+await run("bbtools_browser_list", {});
+await run("bbtools_browser_open", { url: "https://example.com" });
+await run("bbtools_browser_capture", { tabId: "tab_1" });
+await run("bbtools_browser_close", { tabId: "tab_1" });
 
 for (const [name, value] of Object.entries(results)) {
   const v = String(value).replace(/\n/g, " | ");
@@ -128,4 +147,5 @@ console.log("RESPOND answers:", answered);
 const respondCalls = host.harness.sdk.callsTo("threads.interactions.respond");
 console.log("respond payloads:", JSON.stringify(respondCalls.map((c) => c[0].value)));
 console.log("WS after env fix:", results["bbtools_workspace_list"]);
+console.log("capture:", results["bbtools_browser_capture"]);
 console.log("instructions:\n" + host.harness.registrations.instructionProvider({ threadId: "t", projectId: "p" }));
